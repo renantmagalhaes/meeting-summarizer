@@ -113,10 +113,9 @@
         border: 1px solid #f5c6cb;
       }
 
-      /* ▼▼▼ NEW LOADING OVERLAY STYLES ▼▼▼ */
       #loading-overlay {
-        position: fixed; /* Sit on top of the page content */
-        display: none; /* Hidden by default */
+        position: fixed;
+        display: none;
         width: 100%;
         height: 100%;
         top: 0;
@@ -128,32 +127,29 @@
           255,
           255,
           0.85
-        ); /* Semi-transparent background */
-        z-index: 1000; /* Ensure it's on top */
+        );
+        z-index: 1000;
         cursor: progress;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
       }
-
       .spinner {
-        border: 8px solid #f3f3f3; /* Light grey */
-        border-top: 8px solid #007bff; /* Blue */
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #007bff;
         border-radius: 50%;
         width: 60px;
         height: 60px;
         animation: spin 1.5s linear
           infinite;
       }
-
       #loading-overlay p {
         font-size: 1.2rem;
         font-weight: 500;
         margin-top: 20px;
         color: #333;
       }
-
       @keyframes spin {
         0% {
           transform: rotate(0deg);
@@ -162,11 +158,9 @@
           transform: rotate(360deg);
         }
       }
-      /* ▲▲▲ END OF NEW STYLES ▲▲▲ */
     </style>
   </head>
   <body>
-    <!-- ▼▼▼ NEW: Loading Overlay HTML ▼▼▼ -->
     <div
       id="loading-overlay"
       style="display: none"
@@ -178,7 +172,6 @@
       </p>
     </div>
 
-    <!-- This wrapper will be hidden when loading -->
     <div id="main-content">
       <h1>Meeting Summarizer</h1>
 
@@ -196,7 +189,6 @@
         {% endfor %} {% endif %} {%
         endwith %}
 
-        <!-- ▼▼▼ MODIFIED: Added an id to the form ▼▼▼ -->
         <form
           method="post"
           enctype="multipart/form-data"
@@ -214,7 +206,6 @@
               required
             />
           </div>
-
           <div class="form-group">
             <label for="ai_provider"
               >Summarization AI</label
@@ -231,7 +222,6 @@
               </option>
             </select>
           </div>
-
           <input
             type="submit"
             value="Upload and Process"
@@ -289,7 +279,6 @@
       {% endif %} {% endif %}
     </div>
 
-    <!-- ▼▼▼ NEW: JavaScript to control the overlay ▼▼▼ -->
     <script>
       const uploadForm =
         document.getElementById(
@@ -315,21 +304,14 @@
       uploadForm.addEventListener(
         "submit",
         function (event) {
-          // First, check if a file has actually been selected.
-          // The 'required' attribute on the input handles this, but this is a good safety check.
           if (
             audioFileInput.files
               .length === 0
           ) {
-            // If no file, let the browser's validation handle it.
             return;
           }
-
-          // A file is selected, so show the loading screen.
           loadingOverlay.style.display =
             "flex";
-
-          // Optional: Disable the button to prevent double-clicks
           submitButton.disabled = true;
           submitButton.value =
             "Processing...";

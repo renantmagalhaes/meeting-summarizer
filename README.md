@@ -9,6 +9,7 @@ A simple, self-hosted web application to record, transcribe, and summarize your 
 - **Easy Web Interface:** Simple and clean UI for uploading audio files.
 - **State-of-the-Art Transcription:** Uses OpenAI's Whisper for fast and accurate audio-to-text conversion.
 - **Dual AI Provider Support:** Choose between Google Gemini or OpenAI GPT-4o for summarization on a per-upload basis.
+- **Interactive AI Chat:** Engage in a conversation with your meeting's content. Ask follow-up questions, request specific details, and get instant answers based on the full transcript, powered by either Google Gemini or OpenAI.
 - **Structured Summaries:** The AI is prompted to provide a consistent summary format, including:
   - A generated meeting title
   - Key discussion points
@@ -121,6 +122,7 @@ These can be set via a `.env` file or directly in the environment.
 ## 📅 Roadmap
 
 - [ ] Support audio recording directly in-browser
+- [ ] Identify different voices with whisperX
 - [ ] Add support for other AI providers (Claude, Mistral)
 - [ ] Multi-language transcription & summarization
 - [ ] User authentication and multi-user support

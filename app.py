@@ -1,12 +1,10 @@
-# app.py
-
 import os
 import uuid
-from flask import Flask, request, redirect, url_for, render_template, flash
+from flask import Flask, request, redirect, url_for, render_template, flash, jsonify
 from werkzeug.utils import secure_filename
 import whisper
 import google.generativeai as genai
-import openai # <-- Import OpenAI
+import openai
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -83,7 +81,7 @@ def summarize_with_openai(transcript):
         raise Exception("OpenAI client is not configured. Check your OPENAI_API_KEY.")
     prompt = create_summary_prompt(transcript)
     response = openai_client.chat.completions.create(
-        model="gpt-4o",  # Or "gpt-3.5-turbo" for a cheaper/faster option
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": "You are an expert meeting summarization assistant."},
             {"role": "user", "content": prompt}
@@ -92,15 +90,16 @@ def summarize_with_openai(transcript):
     return response.choices[0].message.content
 
 def get_meeting_details(job_id):
-    # This function remains the same
+    """Helper to get all metadata for a given meeting ID."""
     meeting_dir = os.path.join(app.config['PROCESSED_FOLDER'], job_id)
-    details = {'id': job_id, 'title': job_id, 'date': None, 'summary': '', 'transcript': ''}
+    details = {'id': job_id, 'title': job_id, 'date': None, 'summary': '', 'transcript': '', 'provider': 'gemini'}
     try:
         mtime = os.path.getmtime(meeting_dir)
         details['date'] = datetime.fromtimestamp(mtime).strftime('%b %d, %Y')
         with open(os.path.join(meeting_dir, 'title.txt'), 'r') as f: details['title'] = f.read().strip()
         with open(os.path.join(meeting_dir, 'summary.md'), 'r') as f: details['summary'] = f.read()
         with open(os.path.join(meeting_dir, 'transcript.txt'), 'r') as f: details['transcript'] = f.read()
+        with open(os.path.join(meeting_dir, 'provider.txt'), 'r') as f: details['provider'] = f.read().strip()
     except FileNotFoundError:
         pass
     return details
@@ -110,14 +109,12 @@ def get_meeting_details(job_id):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        # File validation logic...
         if 'audio_file' not in request.files:
             flash('No file part'); return redirect(request.url)
         file = request.files['audio_file']
         if file.filename == '':
             flash('No selected file'); return redirect(request.url)
         
-        # Get the chosen AI provider from the form
         ai_provider = request.form.get('ai_provider', 'gemini')
         
         if file and allowed_file(file.filename):
@@ -127,21 +124,18 @@ def index():
             file.save(upload_path)
 
             try:
-                # 1. Transcribe
                 print(f"[{job_id}] Transcribing {filename}...")
                 result = whisper_model.transcribe(upload_path, fp16=False)
                 transcript = result['text']
                 print(f"[{job_id}] Transcription complete.")
 
-                # 2. Summarize using the selected provider
                 print(f"[{job_id}] Summarizing with {ai_provider.upper()}...")
                 if ai_provider == 'openai':
                     full_response_text = summarize_with_openai(transcript)
-                else: # Default to Gemini
+                else:
                     full_response_text = summarize_with_gemini(transcript)
                 print(f"[{job_id}] Summarization complete.")
 
-                # 3. Parse and Save
                 title = f"Meeting - {job_id[:8]}"; summary = full_response_text
                 lines = full_response_text.split('\n')
                 if lines[0].lower().startswith('title:'):
@@ -153,6 +147,7 @@ def index():
                 with open(os.path.join(processed_dir, 'transcript.txt'), 'w') as f: f.write(transcript)
                 with open(os.path.join(processed_dir, 'summary.md'), 'w') as f: f.write(summary)
                 with open(os.path.join(processed_dir, 'title.txt'), 'w') as f: f.write(title)
+                with open(os.path.join(processed_dir, 'provider.txt'), 'w') as f: f.write(ai_provider)
 
             except Exception as e:
                 flash(f'An error occurred during processing: {e}'); return redirect(request.url)
@@ -161,7 +156,6 @@ def index():
             
             return redirect(url_for('view_result', job_id=job_id))
 
-    # GET Request logic remains the same
     search_query = request.args.get('q', '').strip()
     all_meeting_ids = sorted(os.listdir(app.config['PROCESSED_FOLDER']), reverse=True)
     meetings_to_display = []
@@ -178,7 +172,7 @@ def index():
 
     return render_template('index.html', meetings=meetings_to_display, search_query=search_query)
 
-# The /result/<job_id> route remains the same
+
 @app.route('/result/<job_id>')
 def view_result(job_id):
     try:
@@ -189,14 +183,59 @@ def view_result(job_id):
         flash('Result not found.'); return redirect(url_for('index'))
 
 
+@app.route('/chat/<job_id>', methods=['POST'])
+def chat_with_transcript(job_id):
+    """API endpoint to handle chat interactions with a transcript."""
+    data = request.get_json()
+    if not data or 'message' not in data:
+        return jsonify({'error': 'Invalid request. Message is missing.'}), 400
+
+    user_message = data['message']
+    ai_provider = data.get('provider', 'gemini')
+
+    try:
+        details = get_meeting_details(job_id)
+        transcript = details.get('transcript')
+        if not transcript:
+            return jsonify({'error': 'Transcript not found.'}), 404
+
+        chat_prompt = f"""
+        You are an intelligent meeting assistant. You have been provided with the full transcript of a meeting.
+        Your task is to answer the user's question based *only* on the information contained within this transcript.
+        Do not make up information. If the answer is not in the transcript, say so.
+
+        ---
+        FULL MEETING TRANSCRIPT:
+        {transcript}
+        ---
+
+        USER'S QUESTION:
+        "{user_message}"
+        """
+
+        if ai_provider == 'openai' and openai_client:
+            response = openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": chat_prompt}]
+            )
+            ai_response = response.choices[0].message.content
+        elif gemini_model:
+            response = gemini_model.generate_content(chat_prompt)
+            ai_response = response.text
+        else:
+            return jsonify({'error': f'AI provider {ai_provider} not available.'}), 500
+
+        return jsonify({'reply': ai_response})
+
+    except Exception as e:
+        print(f"Error during chat processing: {e}")
+        return jsonify({'error': 'An internal error occurred.'}), 500
+
+
 if __name__ == '__main__':
-    # Ensure directories exist, which is important for the volume mapping
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(PROCESSED_FOLDER, exist_ok=True)
     
-    # Get port from environment variable, default to 5001 if not set
-    # This allows Docker to control the port
     port = int(os.environ.get('FLASK_RUN_PORT', 5001))
     
-    # Run the app on 0.0.0.0 to make it accessible from outside the container
     app.run(debug=True, host='0.0.0.0', port=port)

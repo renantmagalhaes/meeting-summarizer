@@ -17,6 +17,8 @@ A simple, self-hosted web application to record, transcribe, and summarize your 
 - **Meeting Directory:** A browsable and searchable list of all your processed meetings.
 - **Keyword Search:** Quickly find relevant meetings by searching through titles, summaries, and full transcripts.
 
+> ⚠️ **Note:** Only audio files are supported. Allowed formats: `.wav`, `.mp3`, `.m4a`, `.ogg`, and `.mp4`. Video files like `.mp4` are accepted only for extracting their audio content.
+
 ## Tech Stack
 
 - **Backend:** Python 3, Flask

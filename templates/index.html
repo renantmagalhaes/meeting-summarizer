@@ -34,7 +34,6 @@
         box-shadow: 0 2px 4px
           rgba(0, 0, 0, 0.05);
       }
-      /* Style for form elements */
       .form-group {
         margin-bottom: 1.5rem;
       }
@@ -65,6 +64,10 @@
       input[type="submit"]:hover {
         background: #0056b3;
       }
+      input[type="submit"]:disabled {
+        background: #5a9ee0;
+        cursor: not-allowed;
+      }
       input[type="search"] {
         width: 100%;
         padding: 0.75rem;
@@ -73,7 +76,6 @@
         border: 1px solid #ccc;
         box-sizing: border-box;
       }
-      /* List styles */
       .meetings-list {
         list-style-type: none;
         padding: 0;
@@ -110,110 +112,229 @@
         color: #721c24;
         border: 1px solid #f5c6cb;
       }
+
+      /* ▼▼▼ NEW LOADING OVERLAY STYLES ▼▼▼ */
+      #loading-overlay {
+        position: fixed; /* Sit on top of the page content */
+        display: none; /* Hidden by default */
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(
+          255,
+          255,
+          255,
+          0.85
+        ); /* Semi-transparent background */
+        z-index: 1000; /* Ensure it's on top */
+        cursor: progress;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .spinner {
+        border: 8px solid #f3f3f3; /* Light grey */
+        border-top: 8px solid #007bff; /* Blue */
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1.5s linear
+          infinite;
+      }
+
+      #loading-overlay p {
+        font-size: 1.2rem;
+        font-weight: 500;
+        margin-top: 20px;
+        color: #333;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      /* ▲▲▲ END OF NEW STYLES ▲▲▲ */
     </style>
   </head>
   <body>
-    <h1>Meeting Summarizer</h1>
-
-    <div class="upload-box">
-      <h2>
-        Upload a New Meeting Audio
-      </h2>
-      {% with messages =
-      get_flashed_messages() %} {% if
-      messages %} {% for message in
-      messages %}
-      <p class="flash">{{ message }}</p>
-      {% endfor %} {% endif %} {%
-      endwith %}
-      <form
-        method="post"
-        enctype="multipart/form-data"
-      >
-        <div class="form-group">
-          <label for="audio_file"
-            >Audio File</label
-          >
-          <input
-            type="file"
-            name="audio_file"
-            id="audio_file"
-            accept=".mp3,.wav,.m4a,.ogg,.mp4"
-            required
-          />
-        </div>
-
-        <!-- ▼▼▼ NEW DROPDOWN MENU ▼▼▼ -->
-        <div class="form-group">
-          <label for="ai_provider"
-            >Summarization AI</label
-          >
-          <select
-            name="ai_provider"
-            id="ai_provider"
-          >
-            <option value="gemini">
-              Google Gemini 1.5 Flash
-            </option>
-            <option value="openai">
-              OpenAI GPT-4o
-            </option>
-          </select>
-        </div>
-        <!-- ▲▲▲ END OF NEW DROPDOWN ▲▲▲ -->
-
-        <input
-          type="submit"
-          value="Upload and Process"
-        />
-      </form>
+    <!-- ▼▼▼ NEW: Loading Overlay HTML ▼▼▼ -->
+    <div
+      id="loading-overlay"
+      style="display: none"
+    >
+      <div class="spinner"></div>
+      <p>
+        Processing your audio...<br />This
+        may take a few minutes.
+      </p>
     </div>
 
-    <!-- The rest of the page (Search and List) remains the same -->
-    <div class="search-box">
-      <h2>Search Processed Meetings</h2>
-      <form method="get" action="/">
-        <input
-          type="search"
-          name="q"
-          placeholder="Search in titles, summaries, or transcripts..."
-          value="{{ search_query or '' }}"
-        />
-      </form>
-    </div>
+    <!-- This wrapper will be hidden when loading -->
+    <div id="main-content">
+      <h1>Meeting Summarizer</h1>
 
-    <h2>
-      {% if search_query %} Search
-      Results for "<strong
-        >{{ search_query }}</strong
-      >" {% else %} All Processed
-      Meetings {% endif %}
-    </h2>
+      <div class="upload-box">
+        <h2>
+          Upload a New Meeting Audio
+        </h2>
+        {% with messages =
+        get_flashed_messages() %} {% if
+        messages %} {% for message in
+        messages %}
+        <p class="flash">
+          {{ message }}
+        </p>
+        {% endfor %} {% endif %} {%
+        endwith %}
 
-    {% if meetings %}
-    <ul class="meetings-list">
-      {% for meeting in meetings %}
-      <li>
-        <a
-          href="{{ url_for('view_result', job_id=meeting.id) }}"
-          >{{ meeting.title }}</a
+        <!-- ▼▼▼ MODIFIED: Added an id to the form ▼▼▼ -->
+        <form
+          method="post"
+          enctype="multipart/form-data"
+          id="upload-form"
         >
-        <div class="meeting-date">
-          {{ meeting.date }}
-        </div>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %} {% if search_query %}
-    <p>
-      No meetings found matching your
-      search.
-    </p>
-    {% else %}
-    <p>
-      No meetings processed yet. Upload
-      one to get started!
-    </p>
-    {% endif %} {% endif %}
+          <div class="form-group">
+            <label for="audio_file"
+              >Audio File</label
+            >
+            <input
+              type="file"
+              name="audio_file"
+              id="audio_file"
+              accept=".mp3,.wav,.m4a,.ogg,.mp4"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="ai_provider"
+              >Summarization AI</label
+            >
+            <select
+              name="ai_provider"
+              id="ai_provider"
+            >
+              <option value="gemini">
+                Google Gemini 1.5 Flash
+              </option>
+              <option value="openai">
+                OpenAI GPT-4o
+              </option>
+            </select>
+          </div>
+
+          <input
+            type="submit"
+            value="Upload and Process"
+            id="submit-button"
+          />
+        </form>
+      </div>
+
+      <div class="search-box">
+        <h2>
+          Search Processed Meetings
+        </h2>
+        <form method="get" action="/">
+          <input
+            type="search"
+            name="q"
+            placeholder="Search in titles, summaries, or transcripts..."
+            value="{{ search_query or '' }}"
+          />
+        </form>
+      </div>
+
+      <h2>
+        {% if search_query %} Search
+        Results for "<strong
+          >{{ search_query }}</strong
+        >" {% else %} All Processed
+        Meetings {% endif %}
+      </h2>
+
+      {% if meetings %}
+      <ul class="meetings-list">
+        {% for meeting in meetings %}
+        <li>
+          <a
+            href="{{ url_for('view_result', job_id=meeting.id) }}"
+            >{{ meeting.title }}</a
+          >
+          <div class="meeting-date">
+            {{ meeting.date }}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %} {% if search_query %}
+      <p>
+        No meetings found matching your
+        search.
+      </p>
+      {% else %}
+      <p>
+        No meetings processed yet.
+        Upload one to get started!
+      </p>
+      {% endif %} {% endif %}
+    </div>
+
+    <!-- ▼▼▼ NEW: JavaScript to control the overlay ▼▼▼ -->
+    <script>
+      const uploadForm =
+        document.getElementById(
+          "upload-form"
+        );
+      const submitButton =
+        document.getElementById(
+          "submit-button"
+        );
+      const mainContent =
+        document.getElementById(
+          "main-content"
+        );
+      const loadingOverlay =
+        document.getElementById(
+          "loading-overlay"
+        );
+      const audioFileInput =
+        document.getElementById(
+          "audio_file"
+        );
+
+      uploadForm.addEventListener(
+        "submit",
+        function (event) {
+          // First, check if a file has actually been selected.
+          // The 'required' attribute on the input handles this, but this is a good safety check.
+          if (
+            audioFileInput.files
+              .length === 0
+          ) {
+            // If no file, let the browser's validation handle it.
+            return;
+          }
+
+          // A file is selected, so show the loading screen.
+          loadingOverlay.style.display =
+            "flex";
+
+          // Optional: Disable the button to prevent double-clicks
+          submitButton.disabled = true;
+          submitButton.value =
+            "Processing...";
+        }
+      );
+    </script>
   </body>
 </html>

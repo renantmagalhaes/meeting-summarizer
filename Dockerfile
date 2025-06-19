@@ -4,7 +4,7 @@ FROM python:3.11-slim
 
 # Step 2: Install system dependencies required by the app
 # - ffmpeg is crucial for Whisper to process audio
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg git && rm -rf /var/lib/apt/lists/*
 
 # Step 3: Set the working directory in the container
 WORKDIR /app

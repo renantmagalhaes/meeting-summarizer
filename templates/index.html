@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Meeting Summarizer</title>
+    <style>
+      body {
+        font-family: -apple-system,
+          BlinkMacSystemFont, "Segoe UI",
+          Roboto, "Helvetica Neue",
+          Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        background-color: #fdfdfd;
+      }
+      h1,
+      h2 {
+        color: #111;
+      }
+      .upload-box,
+      .search-box {
+        background: #fff;
+        border: 1px solid #ddd;
+        padding: 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px
+          rgba(0, 0, 0, 0.05);
+      }
+      /* Style for form elements */
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      input[type="file"],
+      select {
+        display: block;
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+      input[type="submit"] {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+      input[type="submit"]:hover {
+        background: #0056b3;
+      }
+      input[type="search"] {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+      /* List styles */
+      .meetings-list {
+        list-style-type: none;
+        padding: 0;
+      }
+      .meetings-list li {
+        background: #fff;
+        border: 1px solid #e1e1e1;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        transition: box-shadow 0.2s ease;
+      }
+      .meetings-list li:hover {
+        box-shadow: 0 4px 8px
+          rgba(0, 0, 0, 0.08);
+      }
+      .meetings-list a {
+        text-decoration: none;
+        color: #0056b3;
+        font-weight: 600;
+        font-size: 1.1rem;
+        display: block;
+      }
+      .meeting-date {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 0.25rem;
+      }
+      .flash {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 5px;
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Meeting Summarizer</h1>
+
+    <div class="upload-box">
+      <h2>
+        Upload a New Meeting Audio
+      </h2>
+      {% with messages =
+      get_flashed_messages() %} {% if
+      messages %} {% for message in
+      messages %}
+      <p class="flash">{{ message }}</p>
+      {% endfor %} {% endif %} {%
+      endwith %}
+      <form
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <div class="form-group">
+          <label for="audio_file"
+            >Audio File</label
+          >
+          <input
+            type="file"
+            name="audio_file"
+            id="audio_file"
+            accept=".mp3,.wav,.m4a,.ogg,.mp4"
+            required
+          />
+        </div>
+
+        <!-- ▼▼▼ NEW DROPDOWN MENU ▼▼▼ -->
+        <div class="form-group">
+          <label for="ai_provider"
+            >Summarization AI</label
+          >
+          <select
+            name="ai_provider"
+            id="ai_provider"
+          >
+            <option value="gemini">
+              Google Gemini 1.5 Flash
+            </option>
+            <option value="openai">
+              OpenAI GPT-4o
+            </option>
+          </select>
+        </div>
+        <!-- ▲▲▲ END OF NEW DROPDOWN ▲▲▲ -->
+
+        <input
+          type="submit"
+          value="Upload and Process"
+        />
+      </form>
+    </div>
+
+    <!-- The rest of the page (Search and List) remains the same -->
+    <div class="search-box">
+      <h2>Search Processed Meetings</h2>
+      <form method="get" action="/">
+        <input
+          type="search"
+          name="q"
+          placeholder="Search in titles, summaries, or transcripts..."
+          value="{{ search_query or '' }}"
+        />
+      </form>
+    </div>
+
+    <h2>
+      {% if search_query %} Search
+      Results for "<strong
+        >{{ search_query }}</strong
+      >" {% else %} All Processed
+      Meetings {% endif %}
+    </h2>
+
+    {% if meetings %}
+    <ul class="meetings-list">
+      {% for meeting in meetings %}
+      <li>
+        <a
+          href="{{ url_for('view_result', job_id=meeting.id) }}"
+          >{{ meeting.title }}</a
+        >
+        <div class="meeting-date">
+          {{ meeting.date }}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %} {% if search_query %}
+    <p>
+      No meetings found matching your
+      search.
+    </p>
+    {% else %}
+    <p>
+      No meetings processed yet. Upload
+      one to get started!
+    </p>
+    {% endif %} {% endif %}
+  </body>
+</html>

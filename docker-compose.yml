@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  summarizer:
+    # Build the Docker image from the Dockerfile in the current directory
+    build: .
+
+    # Port mapping: <HOST_PORT>:<CONTAINER_PORT>
+    # This exposes the app on port 5001 of your local machine
+    ports:
+      - "5001:5001"
+
+    # Volume mapping: <HOST_PATH>:<CONTAINER_PATH>
+    # This syncs the 'processed' and 'uploads' folders with your project directory
+    # ensuring data persistence.
+    volumes:
+      - ./processed:/app/processed
+      - ./uploads:/app/uploads
+
+    # Pass environment variables from the .env file into the container
+    # This securely provides your API keys to the application.
+    env_file:
+      - .env
+
+    # Pass the port configuration into the container
+    # This must match the <CONTAINER_PORT> in the 'ports' section above.
+    environment:
+      - FLASK_RUN_PORT=5001

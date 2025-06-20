@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   summarizer:
+    restart: unless-stopped
     # Build the Docker image from the Dockerfile in the current directory
     build: .
 
